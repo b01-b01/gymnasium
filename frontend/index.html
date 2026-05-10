@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title>Gymnasium Manager</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; color: #333; }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 20px 40px;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      padding: 20px 40px;
+      background: #16213e;
+    }
+
+    nav button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      background: #0f3460;
+      color: white;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    nav button.active { background: #e94560; }
+
+    .container { padding: 30px 40px; }
+
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    h2 { margin-bottom: 16px; font-size: 1.2rem; }
+
+    input, select {
+      padding: 8px 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    button.btn {
+      padding: 8px 18px;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+
+    button.btn-delete { background: #999; padding: 4px 12px; font-size: 0.85rem; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    button.btn-edit { background: #0f3460; padding: 4px 12px; font-size: 0.85rem; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 4px; }
+    button.btn-checkout { background: #e94560; padding: 4px 12px; font-size: 0.85rem; color: white; border: none; border-radius: 6px; cursor: pointer; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th { background: #1a1a2e; color: white; padding: 10px; text-align: left; }
+    td { padding: 10px; border-bottom: 1px solid #eee; }
+    tr:hover { background: #f9f9f9; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .msg { margin-top: 10px; color: green; font-size: 0.9rem; }
+
+    /* STATS */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: white;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .stat-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .stat-card .number {
+      font-size: 28px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin: 0;
+      line-height: 1;
+    }
+
+    .stat-card .label {
+      font-size: 13px;
+      color: #888;
+      margin: 4px 0 0;
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      width: 420px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .modal h2 { margin-bottom: 20px; }
+    .modal input, .modal select { width: 100%; display: block; margin-bottom: 12px; margin-right: 0; }
+    .modal-buttons { display: flex; gap: 10px; margin-top: 10px; }
+
+    .btn-cancel {
+      padding: 8px 18px;
+      background: #ccc;
+      color: #333;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>🏋️ Gymnasium Manager</header>
+
+<nav>
+  <button class="active" onclick="showSection('geral', event)">Geral</button>
+  <button onclick="showSection('checkins', event)">Check-ins</button>
+</nav>
+
+<div class="container">
+
+  <!-- GERAL -->
+  <div id="geral" class="section active">
+
+    <!-- STATS -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div>
+      <p class="number" id="stat-total">-</p>
+      <p class="label">Total de membros</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <p class="number" id="stat-active">-</p>
+      <p class="label">Membros ativos</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <p class="number" id="stat-checkins">-</p>
+      <p class="label">Total check-ins</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div>
+      <p class="number" id="stat-gym">-</p>
+      <p class="label">Agora no ginásio</p>
+    </div>
+  </div>
+</div>
+
+    <!-- ADICIONAR MEMBRO -->
+    <div class="card">
+      <h2>Adicionar Membro</h2>
+      <input id="m-name"  type="text"   placeholder="Nome">
+      <input id="m-email" type="email"  placeholder="Email">
+      <input id="m-phone" type="text"   placeholder="Telefone (opcional)">
+      <select id="m-plan">
+        <option value="monthly">Mensal</option>
+        <option value="annual">Anual</option>
+        <option value="day_pass">Day Pass</option>
+      </select>
+      <br>
+      <button class="btn" onclick="addMember()">Adicionar</button>
+      <div class="msg" id="m-msg"></div>
+    </div>
+
+    <!-- LISTA DE MEMBROS -->
+    <div class="card">
+      <h2>Lista de Membros</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Nome</th><th>Email</th><th>Telefone</th><th>Plano</th><th>Estado</th><th>Ações</th></tr>
+        </thead>
+        <tbody id="members-table"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- CHECKINS -->
+  <div id="checkins" class="section">
+    <div class="card">
+      <h2>Registar Check-in</h2>
+      <input id="c-member-id" type="number" placeholder="ID do Membro">
+      <button class="btn" onclick="addCheckin()">Registar Entrada</button>
+      <div class="msg" id="c-msg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Histórico de Check-ins</h2>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Membro ID</th><th>Entrada</th><th>Saída</th><th>Ação</th></tr>
+        </thead>
+        <tbody id="checkins-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL EDITAR -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h2>Editar Membro</h2>
+    <input id="edit-name"  type="text"  placeholder="Nome">
+    <input id="edit-phone" type="text"  placeholder="Telefone">
+    <select id="edit-plan">
+      <option value="monthly">Mensal</option>
+      <option value="annual">Anual</option>
+      <option value="day_pass">Day Pass</option>
+    </select>
+    <select id="edit-status">
+      <option value="active">Ativo</option>
+      <option value="inactive">Inativo</option>
+    </select>
+    <div class="modal-buttons">
+      <button class="btn" onclick="saveEdit()">Guardar</button>
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = "http://localhost:8000";
+  let editingId = null;
+
+  function showSection(name, event) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+    document.getElementById(name).classList.add("active");
+    event.target.classList.add("active");
+    if (name === "geral") { loadDashboard(); loadMembers(); }
+    else if (name === "checkins") loadCheckins();
+  }
+
+async function loadDashboard() {
+    const res = await fetch(`${API}/dashboard`);
+    const data = await res.json();
+    document.getElementById("stat-total").textContent    = data.total_members;
+    document.getElementById("stat-active").textContent   = data.active_members;
+    document.getElementById("stat-checkins").textContent = data.total_checkins;
+    document.getElementById("stat-gym").textContent      = data.currently_in_gym;
+}
+
+  async function loadMembers() {
+    const res = await fetch(`${API}/members`);
+    const data = await res.json();
+    const tbody = document.getElementById("members-table");
+    tbody.innerHTML = data.map(m => `
+      <tr>
+        <td>${m.id}</td>
+        <td>${m.name}</td>
+        <td>${m.email}</td>
+        <td>${m.phone || "-"}</td>
+        <td>${m.plan}</td>
+        <td>${m.status}</td>
+        <td>
+          <button class="btn-edit" onclick="openEdit(${m.id}, '${m.name}', '${m.phone || ''}', '${m.plan}', '${m.status}')">Editar</button>
+          <button class="btn btn-delete" onclick="deleteMember(${m.id})">Remover</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function addMember() {
+    const body = {
+      name:  document.getElementById("m-name").value,
+      email: document.getElementById("m-email").value,
+      phone: document.getElementById("m-phone").value || null,
+      plan:  document.getElementById("m-plan").value
+    };
+    const res = await fetch(`${API}/members`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      document.getElementById("m-msg").textContent = "Membro adicionado com sucesso!";
+      loadMembers();
+      loadDashboard();
+    }
+  }
+
+  async function deleteMember(id) {
+    await fetch(`${API}/members/${id}`, { method: "DELETE" });
+    loadMembers();
+    loadDashboard();
+  }
+
+  function openEdit(id, name, phone, plan, status) {
+    editingId = id;
+    document.getElementById("edit-name").value = name;
+    document.getElementById("edit-phone").value = phone;
+    document.getElementById("edit-plan").value = plan;
+    document.getElementById("edit-status").value = status;
+    document.getElementById("edit-modal").classList.add("active");
+  }
+
+  function closeModal() {
+    document.getElementById("edit-modal").classList.remove("active");
+    editingId = null;
+  }
+
+  async function saveEdit() {
+    const body = {
+      name:   document.getElementById("edit-name").value,
+      phone:  document.getElementById("edit-phone").value || null,
+      plan:   document.getElementById("edit-plan").value,
+      status: document.getElementById("edit-status").value,
+    };
+    const res = await fetch(`${API}/members/${editingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (res.ok) {
+      closeModal();
+      loadMembers();
+      loadDashboard();
+    }
+  }
+
+  async function loadCheckins() {
+    const res = await fetch(`${API}/checkins`);
+    const data = await res.json();
+    const tbody = document.getElementById("checkins-table");
+    tbody.innerHTML = data.map(c => `
+      <tr>
+        <td>${c.id}</td>
+        <td>${c.member_id}</td>
+        <td>${c.checked_in ? new Date(c.checked_in).toLocaleString("pt-PT") : "-"}</td>
+        <td>${c.checked_out ? new Date(c.checked_out).toLocaleString("pt-PT") : "Em curso"}</td>
+        <td>
+          ${!c.checked_out ? `<button class="btn-checkout" onclick="doCheckout(${c.id})">Check-out</button>` : "-"}
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function addCheckin() {
+    const member_id = parseInt(document.getElementById("c-member-id").value);
+    const res = await fetch(`${API}/checkins`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ member_id })
+    });
+    if (res.ok) {
+      document.getElementById("c-msg").textContent = "Check-in registado!";
+      loadCheckins();
+    }
+  }
+
+  async function doCheckout(id) {
+    await fetch(`${API}/checkins/${id}/checkout`, { method: "PUT" });
+    loadCheckins();
+  }
+
+  loadDashboard();
+  loadMembers();
+</script>
+
+</body>
+</html>
