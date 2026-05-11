@@ -48,12 +48,12 @@ pipeline {
     post {
         success {
             mail to: 'joaodiogofonseca01@gmail.com',
-                 subject: "✅ Pipeline OK - Gymnasium",
+                 subject: "Pipeline OK - Gymnasium",
                  body: "O pipeline correu com sucesso!"
         }
         failure {
             mail to: 'joaodiogofonseca01@gmail.com',
-                 subject: "❌ Pipeline FALHOU - Gymnasium",
+                 subject: "Pipeline FALHOU - Gymnasium",
                  body: "O pipeline falhou. Verifica o Jenkins para mais detalhes."
         }
     }
