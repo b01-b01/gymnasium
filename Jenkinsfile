@@ -2,59 +2,53 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_USER = 'joaodiofonse'
-        IMAGE_BACKEND   = "${DOCKERHUB_USER}/gymnasium-backend"
-        IMAGE_FRONTEND  = "${DOCKERHUB_USER}/gymnasium-frontend"
+        DOCKER_USER = 'sobreiraa12344'
+        FRONT_IMAGE = "${DOCKER_USER}/gym-frontend"
+        BACK_IMAGE = "${DOCKER_USER}/gym-backend"
     }
 
     stages {
-
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    credentialsId: 'github-credentials',
-                    url: 'https://github.com/b01-b01/gymnasium.git'
+                checkout scm [cite: 17]
             }
         }
 
-        stage('Build Backend') {
+        stage('Docker Build & Push') {
             steps {
-                sh 'docker build -t $IMAGE_BACKEND ./backend'
-            }
-        }
+                script {
+                    // Login e Push para Docker Hub [cite: 16]
+                    docker.withRegistry('', 'docker-hub-credentials') {
+                        
+                        // Backend
+                        def backend = docker.build("${BACK_IMAGE}:${env.BUILD_ID}", "./backend")
+                        backend.push()
+                        backend.push("latest")
 
-        stage('Build Frontend') {
-            steps {
-                sh 'docker build -t $IMAGE_FRONTEND ./frontend'
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh 'docker push $IMAGE_BACKEND'
-                    sh 'docker push $IMAGE_FRONTEND'
+                        // Frontend
+                        def frontend = docker.build("${FRONT_IMAGE}:${env.BUILD_ID}", "./frontend")
+                        frontend.push()
+                        frontend.push("latest")
+                    }
                 }
             }
         }
 
+        stage('Deploy with Ansible') {
+            steps {
+                // Requisito: Deploy automático 
+                echo "A executar Ansible para instalação/upgrade..."
+                // sh 'ansible-playbook -i ansible/inventory.ini ansible/deploy.yml'
+            }
+        }
     }
 
     post {
-        success {
-            mail to: 'joaodiogofonseca01@gmail.com',
-                 subject: "Pipeline OK - Gymnasium",
-                 body: "O pipeline correu com sucesso!"
-        }
-        failure {
-            mail to: 'joaodiogofonseca01@gmail.com',
-                 subject: "Pipeline FALHOU - Gymnasium",
-                 body: "O pipeline falhou. Verifica o Jenkins para mais detalhes."
+        always {
+            // Requisito: Enviar email em caso de sucesso ou erro [cite: 12]
+            mail to: 'teu-email@isec.pt',
+                 subject: "Status Pipeline Gymnasium: ${currentBuild.result}",
+                 body: "O build ${env.BUILD_ID} terminou com status: ${currentBuild.result}\nLink: ${env.BUILD_URL}"
         }
     }
 }
