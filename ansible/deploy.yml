@@ -8,6 +8,15 @@
     network_name: "gym_network"
 
   tasks:
+    - name: Parar containers antigos se existirem
+      docker_container:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - gym-frontend
+        - gym-backend
+        - gym-db
+
     - name: Garantir que a rede Docker existe
       docker_network:
         name: "{{ network_name }}"
