@@ -1,64 +1,55 @@
 ---
-- name: Deploy Gymnasium Application (3-Tier Architecture)
+- name: Deploy Gymnasium Application
   hosts: localhost
   connection: local
-  become: yes  # Necessário para gerir o Docker socket
 
   vars:
-    docker_user: "sobreiraa12344"
+    docker_user: "joaodiofonse"
     network_name: "gym_network"
 
   tasks:
-    - name: 1. Garantir que a rede Docker existe
+    - name: Garantir que a rede Docker existe
       docker_network:
         name: "{{ network_name }}"
         state: present
 
-    - name: 2. Camada de Dados - Levantar Postgres (Imagem Oficial)
+    - name: Levantar PostgreSQL
       docker_container:
         name: gym-db
-        image: postgres:latest
+        image: postgres:15
         state: started
         restart_policy: always
         networks:
           - name: "{{ network_name }}"
         env:
           POSTGRES_USER: "postgres"
-          POSTGRES_PASSWORD: "janeiro2004"
-          POSTGRES_DB: "GymApp"
-        # Mantém os dados mesmo que o container seja apagado
+          POSTGRES_PASSWORD: "12345"
+          POSTGRES_DB: "gymnasium"
         volumes:
           - gym_db_data:/var/lib/postgresql/data
 
-    - name: 3. Camada Backend - Gymnasium API
+    - name: Levantar Backend
       docker_container:
         name: gym-backend
-        image: "{{ docker_user }}/gym-backend:latest"
-        state: started
-        pull: true  # Requisito de Upgrade: Puxa sempre a versão mais recente do Hub
-        restart_policy: always
-        networks:
-          - name: "{{ network_name }}"
-        ports:
-          - "8000:8000"
-        env:
-          # Repara que aqui usamos o nome do container "gym-db" em vez de localhost
-          DATABASE_URL: "postgresql://postgres:janeiro2004@localhost:5432/GymApp"
-
-    - name: 4. Camada Frontend - Website
-      docker_container:
-        name: gym-frontend
-        image: "{{ docker_user }}/gym-frontend:latest"
+        image: "{{ docker_user }}/gymnasium-backend:latest"
         state: started
         pull: true
         restart_policy: always
         networks:
           - name: "{{ network_name }}"
         ports:
-          - "80:80"
+          - "8000:8000"
+        env:
+          DATABASE_URL: "postgresql://postgres:12345@gym-db:5432/gymnasium"
 
-    - name: 5. Limpar imagens antigas (Opcional - poupa espaço)
-      docker_prune:
-        images: yes
-        images_filters:
-          dangling: false
+    - name: Levantar Frontend
+      docker_container:
+        name: gym-frontend
+        image: "{{ docker_user }}/gymnasium-frontend:latest"
+        state: started
+        pull: true
+        restart_policy: always
+        networks:
+          - name: "{{ network_name }}"
+        ports:
+          - "3000:80"
