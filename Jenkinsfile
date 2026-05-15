@@ -48,9 +48,8 @@ pipeline {
 
         stage('Deploy with Ansible') {
             steps {
-                // Requisito: Instalação/Upgrade via Ansible 
-                echo "A executar Ansible para o deploy das 3 camadas..."
-                sh 'ansible-playbook ansible/deploy.yml'
+                // Esta sintaxe usa o plugin e evita o erro de "not found"
+                ansiblePlaybook playbook: 'ansible/deploy.yml', inventory: 'ansible/inventory.ini'
             }
         }
     }
