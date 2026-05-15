@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_USER = 'sobreiraa12344'
-        // IDs das credenciais que criaste no Jenkins
+        // IDs das credenciais que deves ter no Jenkins (Manage Jenkins > Credentials)
         DOCKER_CREDS_ID = 'docker-hub-credentials'
         GOOGLE_JSON_CREDS_ID = 'google-svc-key' 
     }
@@ -11,14 +11,16 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm [cite: 17]
+                // Checkout simples sem sintaxe complexa para evitar erros de CPS
+                checkout scm
             }
         }
 
-        stage('Prepare Auth & Secrets') {
+        stage('Prepare Secrets') {
             steps {
                 script {
-                    // Saca o JSON do "cofre" do Jenkins e mete-o na pasta do backend para o Docker o copiar
+                    // Saca o JSON do "cofre" do Jenkins e coloca-o na pasta para o Docker o copiar
+                    // Requisito: Segurança e gestão de ficheiros sensíveis [cite: 51]
                     withCredentials([file(credentialsId: "${GOOGLE_JSON_CREDS_ID}", variable: 'GOOGLE_JSON_FILE')]) {
                         sh "cp ${GOOGLE_JSON_FILE} ./backend/service-account.json"
                     }
@@ -29,12 +31,14 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    // Requisito: Enviar imagens para o Docker Hub 
+                    // Requisito: Containerização em múltiplas imagens (Front e Back) 
                     docker.withRegistry('', "${DOCKER_CREDS_ID}") {
-                        // O Dockerfile do backend deve fazer: COPY service-account.json .
+                        
+                        // Build e Push do Backend (Gymnasium API) 
                         def back = docker.build("${DOCKER_USER}/gym-backend:latest", "./backend")
                         back.push()
                         
+                        // Build e Push do Frontend 
                         def front = docker.build("${DOCKER_USER}/gym-frontend:latest", "./frontend")
                         front.push()
                     }
@@ -44,25 +48,20 @@ pipeline {
 
         stage('Deploy with Ansible') {
             steps {
-                // Requisito: Aplicação deve ser instalada/atualizada via Ansible 
-                echo "A executar Ansible Playbook..."
-                // Certifica-te que criaste a pasta 'ansible' com o ficheiro 'playbook.yml'
-                sh 'ansible-playbook ansible/playbook.yml'
+                // Requisito: Instalação/Upgrade via Ansible 
+                echo "A executar Ansible para o deploy das 3 camadas..."
+                sh 'ansible-playbook ansible/deploy.yml'
             }
         }
     }
 
     post {
         always {
-            script {
-                // Requisito: Notificação por email em caso de sucesso ou erro 
-                // Usando emailext para melhor suporte a STARTTLS/Gmail
-                emailext (
-                    to: 'sobreiraafonso@gmail.com',
-                    subject: "Status Jenkins: ${currentBuild.fullDisplayName}",
-                    body: "O build terminou com o resultado: ${currentBuild.result}\nVer detalhes em: ${env.BUILD_URL}"
-                )
-            }
+            // Requisito: Notificação por email em caso de sucesso ou erro 
+            // Nota: Garante que configuraste o SMTP com a App Password de 16 dígitos
+            mail to: 'sobreiraafonso@gmail.com',
+                 subject: "Jenkins Build ${currentBuild.fullDisplayName}: ${currentBuild.result}",
+                 body: "O pipeline do projeto Gymnasium terminou.\nResultado: ${currentBuild.result}\nURL: ${env.BUILD_URL}"
         }
     }
 }
