@@ -10,45 +10,43 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm [cite: 17]
+                // Forma mais robusta de fazer checkout no Jenkins
+                git branch: 'main', url: 'https://github.com/b01-b01/gymnasium' [cite: 17]
             }
         }
 
         stage('Docker Build & Push') {
             steps {
                 script {
-                    // Login e Push para Docker Hub [cite: 16]
+                    // Requisito: Imagens Docker para Front e Back 
                     docker.withRegistry('', 'docker-hub-credentials') {
                         
-                        // Backend
-                        def backend = docker.build("${BACK_IMAGE}:${env.BUILD_ID}", "./backend")
+                        // Build do Backend
+                        def backend = docker.build("${BACK_IMAGE}:latest", "./backend")
                         backend.push()
-                        backend.push("latest")
 
-                        // Frontend
-                        def frontend = docker.build("${FRONT_IMAGE}:${env.BUILD_ID}", "./frontend")
+                        // Build do Frontend
+                        def frontend = docker.build("${FRONT_IMAGE}:latest", "./frontend")
                         frontend.push()
-                        frontend.push("latest")
                     }
                 }
             }
         }
 
-        stage('Deploy with Ansible') {
+        stage('Deploy com Ansible') {
             steps {
-                // Requisito: Deploy automático 
-                echo "A executar Ansible para instalação/upgrade..."
-                // sh 'ansible-playbook -i ansible/inventory.ini ansible/deploy.yml'
+                // Requisito: Deploy automático [cite: 18]
+                echo "A preparar deploy com Ansible..."
             }
         }
     }
 
     post {
         always {
-            // Requisito: Enviar email em caso de sucesso ou erro [cite: 12]
-            mail to: 'teu-email@isec.pt',
-                 subject: "Status Pipeline Gymnasium: ${currentBuild.result}",
-                 body: "O build ${env.BUILD_ID} terminou com status: ${currentBuild.result}\nLink: ${env.BUILD_URL}"
+            // Requisito: Notificação por email 
+            emailext body: "O build ${env.BUILD_ID} terminou com: ${currentBuild.result}",
+                     subject: "Status: ${currentBuild.fullDisplayName}",
+                     to: 'sobreiraafonso@gmail.com' [cite: 12, 13]
         }
     }
 }
