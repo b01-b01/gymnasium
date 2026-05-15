@@ -1,26 +1,17 @@
-from fastapi import FastAPI
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, DateTime
+import os
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import datetime
 
-DATABASE_URL = "postgresql://postgresql://postgres:12345@gym-db:5432/gymnasium"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:12345@gym-db:5432/gymnasium")
+
 engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
-# Mapeamento da tabela Members
-class Member(Base):
-    __tablename__ = "members"
-    id = Column(Integer, primary_key=True, index=True)
-    fullname = Column(String)
-    email = Column(String, unique=True)
-    membership_type = Column(String)
-
-# Mapeamento da tabela Checkins
-class Checkin(Base):
-    __tablename__ = "checkins"
-    id = Column(Integer, primary_key=True, index=True)
-    member_id = Column(Integer, ForeignKey("members.id"))
-    checkin_date = Column(DateTime, default=datetime.datetime.utcnow)
-    location = Column(String)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
