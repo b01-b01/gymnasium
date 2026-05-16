@@ -21,7 +21,7 @@
         state: started
         restart_policy: always
         networks:
-          - name: "{{ network_name }}"
+          - name: "bridge"
         ports:
           - "5432:5432"
         env:
