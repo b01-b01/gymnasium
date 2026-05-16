@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_USER = 'sobreiraa12344'
         // IDs das credenciais que deves ter no Jenkins (Manage Jenkins > Credentials)
-        DOCKER_CREDS_ID = 'docker-hub-credentials'
+        DOCKER_CREDS_ID = 'docker-credentials'
         GOOGLE_JSON_CREDS_ID = 'google-svc-key' 
     }
 

@@ -1,14 +1,15 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware 
 from sqlalchemy.orm import Session
-from database import get_db, engine
-from models import Member, Checkin, Base
+# CORREÇÃO: Importamos tudo diretamente do database.py
+from database import get_db, engine, Base, Member, Checkin
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.sql import func
 
 app = FastAPI()
 
+# Cria as tabelas automaticamente no Postgres se elas não existirem
 Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
@@ -18,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Schemas ---
+# --- Schemas Pydantic ---
 class MemberCreate(BaseModel):
     name: str
     email: str
@@ -34,7 +35,7 @@ class MemberUpdate(BaseModel):
     plan: Optional[str] = None
     status: Optional[str] = None
 
-# --- Members ---
+# --- Rotas dos Membros ---
 @app.get("/members")
 def get_members(db: Session = Depends(get_db)):
     return db.query(Member).all()
@@ -54,23 +55,9 @@ def delete_member(member_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Member not found")
     
     db.query(Checkin).filter(Checkin.member_id == member_id).delete()
-
     db.delete(member)
     db.commit()
     return {"message": "Deleted"}
-
-# --- Checkins ---
-@app.get("/checkins")
-def get_checkins(db: Session = Depends(get_db)):
-    return db.query(Checkin).all()
-
-@app.post("/checkins")
-def create_checkin(checkin: CheckinCreate, db: Session = Depends(get_db)):
-    db_checkin = Checkin(**checkin.dict())
-    db.add(db_checkin)
-    db.commit()
-    db.refresh(db_checkin)
-    return db_checkin
 
 @app.put("/members/{member_id}")
 def update_member(member_id: int, updates: MemberUpdate, db: Session = Depends(get_db)):
@@ -83,6 +70,37 @@ def update_member(member_id: int, updates: MemberUpdate, db: Session = Depends(g
     db.refresh(member)
     return member
 
+# --- Rotas dos Checkins ---
+@app.get("/checkins")
+def get_checkins(db: Session = Depends(get_db)):
+    return db.query(Checkin).all()
+
+@app.post("/checkins")
+def create_checkin(checkin: CheckinCreate, db: Session = Depends(get_db)):
+    # Valida se o membro existe antes de deixar fazer checkin
+    member_exists = db.query(Member).filter(Member.id == checkin.member_id).first()
+    if not member_exists:
+        raise HTTPException(status_code=404, detail="Member encoding ID not found")
+        
+    db_checkin = Checkin(**checkin.dict())
+    db.add(db_checkin)
+    db.commit()
+    db.refresh(db_checkin)
+    return db_checkin
+
+@app.put("/checkins/{checkin_id}/checkout")
+def checkout(checkin_id: int, db: Session = Depends(get_db)):
+    checkin = db.query(Checkin).filter(Checkin.id == checkin_id).first()
+    if not checkin:
+        raise HTTPException(status_code=404, detail="Checkin not found")
+    if checkin.checked_out:
+        raise HTTPException(status_code=400, detail="Already checked out")
+    checkin.checked_out = func.now()
+    db.commit()
+    db.refresh(checkin)
+    return checkin
+
+# --- Rota do Dashboard ---
 @app.get("/dashboard")
 def get_dashboard(db: Session = Depends(get_db)):
     total_members = db.query(Member).count()
@@ -97,15 +115,3 @@ def get_dashboard(db: Session = Depends(get_db)):
         "total_checkins": total_checkins,
         "currently_in_gym": active_checkins
     }
-
-@app.put("/checkins/{checkin_id}/checkout")
-def checkout(checkin_id: int, db: Session = Depends(get_db)):
-    checkin = db.query(Checkin).filter(Checkin.id == checkin_id).first()
-    if not checkin:
-        raise HTTPException(status_code=404, detail="Checkin not found")
-    if checkin.checked_out:
-        raise HTTPException(status_code=400, detail="Already checked out")
-    checkin.checked_out = func.now()
-    db.commit()
-    db.refresh(checkin)
-    return checkin
