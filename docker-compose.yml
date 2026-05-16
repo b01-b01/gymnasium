@@ -1,43 +1,20 @@
+version: '3.8'
+
 services:
-
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 12345
-      POSTGRES_DB: gymnasium
-    ports:
-      - "5433:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-
-  backend:
-    build: ./backend
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://postgres:12345@db:5432/gymnasium
-    depends_on:
-      - db
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
 
   jenkins:
     build: ./jenkins
+    container_name: gymnasium-jenkins-1
     ports:
-      - "8080:8080"
-      - "50000:50000"
+      - "8080:8080"      # Portal Web do Jenkins
+      - "50000:50000"    # Comunicação com Jenkins Agents (se necessário no futuro)
     volumes:
       - jenkins_data:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock  # Permite ao Jenkins criar containers no teu Host
     group_add:
-      - "0"
+      - "0"                                         # Garante acesso ao socket do Docker (Root/Wheel)
+    restart: always
 
 volumes:
-  pg_data:
   jenkins_data:
+    name: gymnasium_jenkins_data  # Nome fixo para o volume para não perderes configurações
