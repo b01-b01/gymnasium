@@ -26,7 +26,7 @@
           POSTGRES_USER: "postgres"
           POSTGRES_PASSWORD: "janeiro2004"
           POSTGRES_DB: "GymApp"
-        # Mantém os dados mesmo que o container seja apagado
+        # Garante a persistência dos dados exigida na ficha
         volumes:
           - gym_db_data:/var/lib/postgresql/data
 
@@ -42,7 +42,7 @@
         ports:
           - "8000:8000"
         env:
-          # Repara que aqui usamos o nome do container "gym-db" em vez de localhost
+          # Usando o nome do container "gym-db" para comunicação na rede interna
           DATABASE_URL: "postgresql://postgres:janeiro2004@gym-db:5432/GymApp"
 
     - name: 4. Camada Frontend - Website
@@ -55,7 +55,8 @@
         networks:
           - name: "{{ network_name }}"
         ports:
-          - "80:80"
+          # Alterado para 3001 (antes era 3000)para resolver de vez o conflito de portas do teu sistema
+          - "3001:80"
 
     - name: 5. Limpar imagens antigas (Opcional - poupa espaço)
       docker_prune:
