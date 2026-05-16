@@ -2,7 +2,7 @@
 - name: Deploy Gymnasium Application (3-Tier Architecture)
   hosts: localhost
   connection: local
-  become: yes  # Necessário para gerir o Docker socket
+  become: no  # Necessário para gerir o Docker socket
 
   vars:
     docker_user: "sobreiraa12344"
