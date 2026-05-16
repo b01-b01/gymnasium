@@ -5,7 +5,7 @@ pipeline {
         DOCKER_USER = 'sobreiraa12344'
         // IDs das credenciais que deves ter no Jenkins (Manage Jenkins > Credentials)
         DOCKER_CREDS_ID = 'docker-credentials'
-        GOOGLE_JSON_CREDS_ID = 'google-svc-key' 
+        GOOGLE_JSON_CREDS_ID = 'client_secret' 
     }
 
     stages {
@@ -16,17 +16,17 @@ pipeline {
             }
         }
 
-        //stage('Prepare Secrets') {
-        //    steps {
-        //        script {
-        //            // Saca o JSON do "cofre" do Jenkins e coloca-o na pasta para o Docker o copiar
-        //            // Requisito: Segurança e gestão de ficheiros sensíveis [cite: 51]
-        //            withCredentials([file(credentialsId: "${GOOGLE_JSON_CREDS_ID}", variable: 'GOOGLE_JSON_FILE')]) {
-        //                sh "cp ${GOOGLE_JSON_FILE} ./backend/service-account.json"
-        //            }
-        //        }
-        //    }
-        //}
+        stage('Prepare Secrets') {
+            steps {
+                script {
+                    // Saca o JSON do "cofre" do Jenkins e coloca-o na pasta para o Docker o copiar
+                    // Requisito: Segurança e gestão de ficheiros sensíveis [cite: 51]
+                    withCredentials([file(credentialsId: "${GOOGLE_JSON_CREDS_ID}", variable: 'GOOGLE_JSON_FILE')]) {
+                        sh "cp ${GOOGLE_JSON_FILE} ./backend/service-account.json"
+                    }
+                }
+            }
+        }
 
         stage('Docker Build & Push') {
             steps {
