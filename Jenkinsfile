@@ -32,7 +32,7 @@ pipeline {
             steps {
                 script {
                     // Requisito: Containerização em múltiplas imagens (Front e Back) 
-                    docker.withRegistry('', "${DOCKER_CREDS_ID}") {
+                    docker.withRegistry('', 'dockerhub-credentials') {
                         
                         // Build e Push do Backend (Gymnasium API) 
                         def back = docker.build("${DOCKER_USER}/gym-backend:latest", "./backend")
