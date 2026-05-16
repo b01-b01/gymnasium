@@ -43,6 +43,8 @@
           - name: "{{ network_name }}"
         ports:
           - "8000:8000"
+        links:
+          - gym-db:db  # Link para o container do Postgres (opcional, mas facilita a comunicação)
         env:
           # Usando o nome do container "gym-db" para comunicação na rede interna
           DATABASE_URL: "postgresql://postgres:janeiro2004@gym-db:5432/GymApp"
