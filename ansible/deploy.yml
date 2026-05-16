@@ -43,7 +43,7 @@
           - "8000:8000"
         env:
           # Repara que aqui usamos o nome do container "gym-db" em vez de localhost
-          DATABASE_URL: "postgresql://postgres:janeiro2004@localhost:5432/GymApp"
+          DATABASE_URL: "postgresql://postgres:janeiro2004@gym-db:5432/GymApp"
 
     - name: 4. Camada Frontend - Website
       docker_container:
