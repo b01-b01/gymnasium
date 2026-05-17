@@ -16,7 +16,7 @@
 
     - name: 2. Camada de Dados - Levantar Postgres (Imagem Oficial)
       docker_container:
-        name: db
+        name: gym-db
         image: postgres:15
         state: started
         restart_policy: always
