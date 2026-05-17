@@ -2,7 +2,7 @@
 - name: Deploy Gymnasium Application (3-Tier Architecture)
   hosts: localhost
   connection: local
-  become: no  # Necessário para gerir o Docker socket
+  become: no
 
   vars:
     docker_user: "sobreiraa12344"
@@ -14,56 +14,77 @@
         name: "{{ network_name }}"
         state: present
 
-    - name: 2. Camada de Dados - Levantar Postgres (Imagem Oficial)
-      docker_container:
-        name: db
-        image: postgres:15
-        state: started
-        restart_policy: always
-        networks:
-          - name: "{{ network_name }}"
-        ports:
-          - "5432:5432"
-        env:
-          POSTGRES_USER: "postgres"
-          POSTGRES_PASSWORD: "janeiro2004"
-          POSTGRES_DB: "GymApp"
-        # Garante a persistência dos dados exigida na ficha
-        volumes:
-          - gym_db_data:/var/lib/postgresql/data
+    # =========================================================================
+    # BLOCO PRINCIPAL: Tenta fazer o deploy dos processos da aplicação
+    # =========================================================================
+    - block:
+        - name: 2. Camada de Dados - Levantar Postgres (Imagem Oficial)
+          docker_container:
+            name: db
+            image: postgres:15
+            state: started
+            restart_policy: always
+            networks:
+              - name: "{{ network_name }}"
+            ports:
+              - "5432:5432"
+            env:
+              POSTGRES_USER: "postgres"
+              POSTGRES_PASSWORD: "janeiro2004"
+              POSTGRES_DB: "GymApp"
+            volumes:
+              - gym_db_data:/var/lib/postgresql/data
 
-    - name: 3. Camada Backend - Gymnasium API
-      docker_container:
-        name: gym-backend
-        image: "{{ docker_user }}/gym-backend:latest"
-        state: started
-        pull: true  # Requisito de Upgrade: Puxa sempre a versão mais recente do Hub
-        restart_policy: always
-        networks:
-          - name: "{{ network_name }}"
-        ports:
-          - "8000:8000"
-        links:
-          - gym-db:db  # Link para o container do Postgres (opcional, mas facilita a comunicação)
-        env:
-          # Usando o nome do container "gym-db" para comunicação na rede interna
-          DATABASE_URL: "postgresql://postgres:janeiro2004@gym-db:5432/GymApp"
+        - name: 3. Camada Backend - Gymnasium API
+          docker_container:
+            name: gym-backend
+            image: "{{ docker_user }}/gym-backend:latest"
+            state: started
+            pull: true
+            restart_policy: always
+            networks:
+              - name: "{{ network_name }}"
+            ports:
+              - "8000:8000"
+            env:
+              DATABASE_URL: "postgresql://postgres:janeiro2004@db:5432/GymApp"
 
-    - name: 4. Camada Frontend - Website
-      docker_container:
-        name: gym-frontend
-        image: "{{ docker_user }}/gym-frontend:latest"
-        state: started
-        pull: true
-        restart_policy: always
-        networks:
-          - name: "{{ network_name }}"
-        ports:
-          # Alterado para 3001 (antes era 3000)para resolver de vez o conflito de portas do teu sistema
-          - "3001:80"
+        - name: 4. Camada Frontend - Website
+          docker_container:
+            name: gym-frontend
+            image: "{{ docker_user }}/gym-frontend:latest"
+            state: started
+            pull: true
+            restart_policy: always
+            networks:
+              - name: "{{ network_name }}"
+            ports:
+              - "3001:80"
 
-    - name: 5. Limpar imagens antigas (Opcional - poupa espaço)
-      docker_prune:
-        images: yes
-        images_filters:
-          dangling: false
+        - name: 5. Limpar imagens antigas (Opcional - poupa espaço)
+          docker_prune:
+            images: yes
+            images_filters:
+              dangling: false
+
+    # =========================================================================
+    # BLOCO DE RESCUE (ROLLBACK): Só é executado se alguma tarefa acima falhar
+    # =========================================================================
+      rescue:
+        - name: 🚨 FALHA DETETADA - A iniciar limpeza de emergência do projeto
+          debug:
+            msg: "Ocorreu um erro no deploy (porta ocupada ou falha de arranque). A remover containers do projeto..."
+
+        - name: Remover os containers do projeto Gymnasium (Mantendo o Jenkins Intacto)
+          docker_container:
+            name: "{{ item }}"
+            state: absent
+            force_kill: yes
+          loop:
+            - db
+            - gym-backend
+            - gym-frontend
+
+        - name: Forçar falha no Jenkins para marcar o Build como vermelho
+          fail:
+            msg: "O deploy falhou catastroficamente, mas o Rollback limpou o sistema com sucesso para evitar portas presas!"
