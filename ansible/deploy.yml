@@ -13,6 +13,16 @@
       docker_network:
         name: "{{ network_name }}"
         state: present
+    
+    - name: 1.5 Purga preventiva de containers antigos para libertar as portas
+      docker_container:
+        name: "{{ item }}"
+        state: absent
+        force_kill: yes
+      loop:
+        - db
+        - gym-backend
+        - gym-frontend
 
     # =========================================================================
     # BLOCO PRINCIPAL: Tenta fazer o deploy dos processos da aplicação
